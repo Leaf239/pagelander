@@ -5,13 +5,14 @@ app = Flask(__name__)
 
 @app.route('/<path:url>', methods=['GET'])
 def proxy(url):
-    target_url = f"http://{url}"
+    scheme = 'https' if request.url.startswith('https') else 'http'
+    target_url = f"{scheme}://{url}"
     
     try:
-        response = requests.get(target_url)
-        return Response(response.content, status=response.status_code, content_type=response.headers['Content-Type'])
-    except requests.exceptions.RequestException as e:
-        return f"Error accessing {target_url}: {e}", 500
+        headers = {k: v for k, v in request.headers if k.lower() != 'host'}
+        r = requests.get(target_url, headers=headers, stream=True)
+        return Response(r.raw, status=r.status_code, content_type=r.headers.get('Content-Type'))
+    except:
+        return 'Error', 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80)
+app.run(host='0.0.0.0', port=80)
